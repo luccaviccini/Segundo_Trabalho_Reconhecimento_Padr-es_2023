@@ -1,8 +1,15 @@
+# Importando as bibliotecas necessárias
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.linalg import pinv
-from sklearn.linear_model import LinearRegression
-from sklearn.naive_bayes import GaussianNB
+
+# Função para calcular a fronteira de decisão do classificador MSE
+def decision_boundary_mse(weights, x):
+    return -(weights[2] + weights[0] * x) / weights[1]
+
+# Função para calcular a fronteira de decisão do classificador de Bayes
+def decision_boundary_bayes(mean_diff, x):
+    return (mean_diff / 2) - x * (mean_diff / 8)
 
 # Parâmetros para as distribuições Gaussianas
 mean_C1 = [0, 0]
@@ -10,54 +17,70 @@ cov_C1 = [[1, 0], [0, 1]]
 mean_C2 = [4, 4]
 cov_C2 = [[1, 0], [0, 1]]
 
-# Número de amostras por classe para treino e teste
+# 7) Análise com 500 eventos de cada classe
 n_samples = 500
+C1_train_500 = np.random.multivariate_normal(mean_C1, cov_C1, n_samples)
+C2_train_500 = np.random.multivariate_normal(mean_C2, cov_C2, n_samples)
+C1_test_500 = np.random.multivariate_normal(mean_C1, cov_C1, n_samples)
+C2_test_500 = np.random.multivariate_normal(mean_C2, cov_C2, n_samples)
 
-# Gerar amostras de treino e teste para C1 e C2
-C1_train = np.random.multivariate_normal(mean_C1, cov_C1, n_samples)
-C2_train = np.random.multivariate_normal(mean_C2, cov_C2, n_samples)
-C1_test = np.random.multivariate_normal(mean_C1, cov_C1, n_samples)
-C2_test = np.random.multivariate_normal(mean_C2, cov_C2, n_samples)
+# Combinar os dados de treino e rótulos para treinamento com 500 eventos
+all_data_train_500 = np.vstack((C1_train_500, C2_train_500))
+all_labels_train_500 = np.vstack((-np.ones((n_samples, 1)), np.ones((n_samples, 1))))
+all_data_bias_train_500 = np.hstack((all_data_train_500, np.ones((2 * n_samples, 1))))
 
-# Salvar os dados de treino e teste em um arquivo npz
-np.savez('dados_trab_2.npz', C1_train=C1_train, C2_train=C2_train, C1_test=C1_test, C2_test=C2_test)
+# Projetar o classificador MSE usando pseudo-inversa com 500 eventos
+W_pseudo_500 = pinv(all_data_bias_train_500).dot(all_labels_train_500)
 
-# Carregar os dados do arquivo npz
-npzfile = np.load('dados_trab_2.npz')
-C1_train = npzfile['C1_train']
-C2_train = npzfile['C2_train']
-C1_test = npzfile['C1_test']
-C2_test = npzfile['C2_test']
+# 8) Análise com 50 eventos de cada classe
+n_samples_train = 50
+C1_train_50 = np.random.multivariate_normal(mean_C1, cov_C1, n_samples_train)
+C2_train_50 = np.random.multivariate_normal(mean_C2, cov_C2, n_samples_train)
 
-## 1. Preparar os Dados: Adicionando uma coluna de uns (para bias)
-C1_train_bias = np.hstack((C1_train, np.ones((C1_train.shape[0], 1))))
-C2_train_bias = np.hstack((C2_train, np.ones((C2_train.shape[0], 1))))
+# Combinar os dados de treino e rótulos para treinamento com 50 eventos
+all_data_train_50 = np.vstack((C1_train_50, C2_train_50))
+all_labels_train_50 = np.vstack((-np.ones((n_samples_train, 1)), np.ones((n_samples_train, 1))))
+all_data_bias_train_50 = np.hstack((all_data_train_50, np.ones((2 * n_samples_train, 1))))
 
-# 2. Etiqueta das Classes
-labels_C1 = -np.ones((C1_train_bias.shape[0], 1))  # Classe C1 com etiqueta -1
-labels_C2 = np.ones((C2_train_bias.shape[0], 1))   # Classe C2 com etiqueta +1
+# Projetar o classificador MSE usando pseudo-inversa com 50 eventos
+W_pseudo_50 = pinv(all_data_bias_train_50).dot(all_labels_train_50)
 
-# 3. Combinar Dados de Treino
-X_train = np.vstack((C1_train_bias, C2_train_bias))
-y_train = np.vstack((labels_C1, labels_C2))
+# Gerar valores para o eixo x para plotar as fronteiras de decisão
+x_values = np.linspace(-3, 7, 300)
 
-# 4. Calcular a Pseudo-Inversa e encontrar pesos
-pseudo_inv = np.linalg.pinv(X_train)
-weights = pseudo_inv.dot(y_train)
+# Fronteiras de decisão para os classificadores com 500 e 50 eventos
+y_values_mse_500 = decision_boundary_mse(W_pseudo_500, x_values)
+y_values_mse_50 = decision_boundary_mse(W_pseudo_50, x_values)
 
-# 5. Projeção do Classificador e Avaliação
-# Define a função para plotar o hiperplano
-def plot_hyperplane(X, weights, label='Decision Boundary'):
-    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    y_min, y_max = -(weights[2] + weights[0]*x_min) / weights[1], -(weights[2] + weights[0]*x_max) / weights[1]
-    plt.plot([x_min, x_max], [y_min, y_max], label=label)
+# A fronteira de Bayes permanece a mesma, pois não depende do tamanho do conjunto de treinamento
+y_values_bayes = 4 - x_values
 
-# Plotar dados de teste e a reta de separação
-plt.scatter(C1_test[:, 0], C1_test[:, 1], color='red', marker='o', label='C1 Test')
-plt.scatter(C2_test[:, 0], C2_test[:, 1], color='blue', marker='x', label='C2 Test')
-plot_hyperplane(np.vstack((C1_test, C2_test)), weights)
+# Plotando a comparação usando os dados de teste
+plt.figure(figsize=(20, 8))
+
+# Plot para análise com 500 eventos
+plt.subplot(1, 2, 1)
+plt.scatter(C1_test_500[:, 0], C1_test_500[:, 1], color='red', label='Class C1 (500 events)')
+plt.scatter(C2_test_500[:, 0], C2_test_500[:, 1], color='blue', label='Class C2 (500 events)')
+plt.plot(x_values, y_values_mse_500, color='green', label='MSE Decision Boundary (500 events)')
+plt.plot(x_values, y_values_bayes, '--', color='purple', label='Bayes Decision Boundary')
 plt.xlabel('Feature 1')
 plt.ylabel('Feature 2')
+plt.title('7) MSE and Bayes Classifiers with 500 Training Events')
 plt.legend()
-plt.grid()
+plt.grid(True)
+
+# Plot para análise com 50 eventos
+plt.subplot(1, 2, 2)
+plt.scatter(C1_test_500[:, 0], C1_test_500[:, 1], color='red', label='Class C1 (50 events)')
+plt.scatter(C2_test_500[:, 0], C2_test_500[:, 1], color='blue', label='Class C2 (50 events)')
+plt.plot(x_values, y_values_mse_50, color='green', label='MSE Decision Boundary (50 events)')
+plt.plot(x_values, y_values_bayes, '--', color='purple', label='Bayes Decision Boundary')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.title('8) MSE and Bayes Classifiers with 50 Training Events')
+plt.legend()
+plt.grid(True)
+
+# Exibindo o gráfico
 plt.show()
