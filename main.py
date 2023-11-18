@@ -36,6 +36,9 @@ W_pseudo_500 = pinv(all_data_bias_train_500).dot(all_labels_train_500)
 n_samples_train = 50
 C1_train_50 = np.random.multivariate_normal(mean_C1, cov_C1, n_samples_train)
 C2_train_50 = np.random.multivariate_normal(mean_C2, cov_C2, n_samples_train)
+# Geração de conjuntos de teste com 50 eventos para cada classe
+C1_test_50 = np.random.multivariate_normal(mean_C1, cov_C1, n_samples_train)
+C2_test_50 = np.random.multivariate_normal(mean_C2, cov_C2, n_samples_train)
 
 # Combinar os dados de treino e rótulos para treinamento com 50 eventos
 all_data_train_50 = np.vstack((C1_train_50, C2_train_50))
@@ -55,11 +58,8 @@ y_values_mse_50 = decision_boundary_mse(W_pseudo_50, x_values)
 # A fronteira de Bayes permanece a mesma, pois não depende do tamanho do conjunto de treinamento
 y_values_bayes = 4 - x_values
 
-# Plotando a comparação usando os dados de teste
-plt.figure(figsize=(20, 8))
-
 # Plot para análise com 500 eventos
-plt.subplot(1, 2, 1)
+plt.figure()
 plt.scatter(C1_test_500[:, 0], C1_test_500[:, 1], color='red', label='Class C1 (500 events)')
 plt.scatter(C2_test_500[:, 0], C2_test_500[:, 1], color='blue', label='Class C2 (500 events)')
 plt.plot(x_values, y_values_mse_500, color='green', label='MSE Decision Boundary (500 events)')
@@ -71,9 +71,9 @@ plt.legend()
 plt.grid(True)
 
 # Plot para análise com 50 eventos
-plt.subplot(1, 2, 2)
-plt.scatter(C1_test_500[:, 0], C1_test_500[:, 1], color='red', label='Class C1 (50 events)')
-plt.scatter(C2_test_500[:, 0], C2_test_500[:, 1], color='blue', label='Class C2 (50 events)')
+plt.figure()
+plt.scatter(C1_test_50[:, 0], C1_test_50[:, 1], color='red', label='Class C1 (50 events)')
+plt.scatter(C2_test_50[:, 0], C2_test_50[:, 1], color='blue', label='Class C2 (50 events)')
 plt.plot(x_values, y_values_mse_50, color='green', label='MSE Decision Boundary (50 events)')
 plt.plot(x_values, y_values_bayes, '--', color='purple', label='Bayes Decision Boundary')
 plt.xlabel('Feature 1')
@@ -82,5 +82,33 @@ plt.title('8) MSE and Bayes Classifiers with 50 Training Events')
 plt.legend()
 plt.grid(True)
 
-# Exibindo o gráfico
+# 9) Análise com outros 50 eventos de cada classe para treinamento
+C1_train_new_50 = np.random.multivariate_normal(mean_C1, cov_C1, n_samples_train)
+C2_train_new_50 = np.random.multivariate_normal(mean_C2, cov_C2, n_samples_train)
+
+# Combinar os novos dados de treino e rótulos
+all_data_train_new_50 = np.vstack((C1_train_new_50, C2_train_new_50))
+all_labels_train_new_50 = np.vstack((-np.ones((n_samples_train, 1)), np.ones((n_samples_train, 1))))
+all_data_bias_train_new_50 = np.hstack((all_data_train_new_50, np.ones((2 * n_samples_train, 1))))
+
+# Projetar o classificador MSE usando pseudo-inversa com os novos 50 eventos
+W_pseudo_new_50 = pinv(all_data_bias_train_new_50).dot(all_labels_train_new_50)
+
+# Calcular a fronteira de decisão para o novo classificador
+y_values_mse_new_50 = decision_boundary_mse(W_pseudo_new_50, x_values)
+
+# Plot para análise com os novos 50 eventos
+plt.figure()
+plt.scatter(C1_test_50[:, 0], C1_test_50[:, 1], color='red', label='Class C1 (50 events)')
+plt.scatter(C2_test_50[:, 0], C2_test_50[:, 1], color='blue', label='Class C2 (50 events)')
+plt.plot(x_values, y_values_mse_new_50, color='green', label='MSE Decision Boundary (New 50 events)')
+plt.plot(x_values, y_values_bayes, '--', color='purple', label='Bayes Decision Boundary')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.title('9) MSE and Bayes Classifiers with New 50 Training Events')
+plt.legend()
+plt.grid(True)
+
+# Exibir o gráfico
+plt.tight_layout()
 plt.show()
