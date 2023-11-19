@@ -2,6 +2,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.linalg import pinv
+from sklearn.svm import SVC
+import os
+# Definir o diretório para salvar as imagens
+save_directory = "imgs"
+os.makedirs(save_directory, exist_ok=True)
 
 # Função para calcular a fronteira de decisão do classificador MSE
 def decision_boundary_mse(weights, x):
@@ -69,6 +74,7 @@ plt.ylabel('Feature 2')
 plt.title('7) MSE and Bayes Classifiers with 500 Training Events')
 plt.legend()
 plt.grid(True)
+plt.savefig(os.path.join(save_directory, 'MSE_Bayes_500_Events.png'), dpi=300)
 
 # Plot para análise com 50 eventos
 plt.figure()
@@ -81,6 +87,7 @@ plt.ylabel('Feature 2')
 plt.title('8) MSE and Bayes Classifiers with 50 Training Events')
 plt.legend()
 plt.grid(True)
+plt.savefig(os.path.join(save_directory, 'MSE_Bayes_50_Events.png'), dpi=300)
 
 # 9) Análise com outros 50 eventos de cada classe para treinamento
 C1_train_new_50 = np.random.multivariate_normal(mean_C1, cov_C1, n_samples_train)
@@ -108,7 +115,67 @@ plt.ylabel('Feature 2')
 plt.title('9) MSE and Bayes Classifiers with New 50 Training Events')
 plt.legend()
 plt.grid(True)
+plt.savefig(os.path.join(save_directory, 'MSE_Bayes_50_new_Events.png'), dpi=300)
+
+# Treinamento do classificador SVM com margem suave
+svm_model = SVC(kernel='linear', C=1.0)  # C é o parâmetro de margem suave
+svm_model.fit(all_data_train_500, np.ravel(all_labels_train_500))  # Usando dados de treinamento com 500 eventos
+
+# Obter os coeficientes para a reta de separação
+w = svm_model.coef_[0]
+b = svm_model.intercept_[0]
+
+# Função para calcular a reta de separação do SVM
+def decision_boundary_svm(w, b, x):
+    return (-w[0] / w[1]) * x - b / w[1]
+
+# Calcular valores para plotagem
+y_values_svm = decision_boundary_svm(w, b, x_values)
+
+# Plotagem dos resultados
+plt.figure()
+plt.scatter(C1_test_500[:, 0], C1_test_500[:, 1], color='red', label='Class C1')
+plt.scatter(C2_test_500[:, 0], C2_test_500[:, 1], color='blue', label='Class C2')
+plt.plot(x_values, y_values_svm, color='green', label='SVM Decision Boundary')
+plt.plot(x_values, y_values_bayes, '--', color='purple', label='Bayes Decision Boundary')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.title('10) SVM and Bayes Classifiers')
+plt.legend()
+plt.grid(True)
+plt.savefig(os.path.join(save_directory, 'SVM_Bayes_500_Events.png'), dpi=300)
+
+# Geração de novos conjuntos de treinamento com 50 eventos para cada classe
+C1_train_new_50 = np.random.multivariate_normal(mean_C1, cov_C1, n_samples_train)
+C2_train_new_50 = np.random.multivariate_normal(mean_C2, cov_C2, n_samples_train)
+
+# Combinar os novos dados de treino e rótulos
+all_data_train_new_50 = np.vstack((C1_train_new_50, C2_train_new_50))
+all_labels_train_new_50 = np.vstack((-np.ones((n_samples_train, 1)), np.ones((n_samples_train, 1))))
+
+# Treinamento do classificador SVM com os novos 50 eventos
+svm_model_new = SVC(kernel='linear', C=1.0)
+svm_model_new.fit(all_data_train_new_50, np.ravel(all_labels_train_new_50))
+
+# Obter os coeficientes para a nova reta de separação do SVM
+w_new = svm_model_new.coef_[0]
+b_new = svm_model_new.intercept_[0]
+
+# Calcular a reta de separação para o novo SVM
+y_values_svm_new = decision_boundary_svm(w_new, b_new, x_values)
+
+# Plotagem dos resultados com os novos 50 eventos de treinamento
+plt.figure()
+plt.scatter(C1_test_50[:, 0], C1_test_50[:, 1], color='red', label='Class C1')
+plt.scatter(C2_test_50[:, 0], C2_test_50[:, 1], color='blue', label='Class C2')
+plt.plot(x_values, y_values_svm_new, color='green', label='SVM Decision Boundary (New 50 events)')
+plt.plot(x_values, y_values_bayes, '--', color='purple', label='Bayes Decision Boundary')
+plt.xlabel('Feature 1')
+plt.ylabel('Feature 2')
+plt.title('11) SVM and Bayes Classifiers with New 50 Training Events')
+plt.legend()
+plt.grid(True)
+plt.savefig(os.path.join(save_directory, 'SVM_Bayes_50_new_Events.png'), dpi=300)
 
 # Exibir o gráfico
-plt.tight_layout()
 plt.show()
